@@ -11,7 +11,7 @@ setuptools.setup(
     description="A wrapper for the Evoflame API v1",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/greghesp/pyevoflame",
+    url="https://github.com/greghesp/python-evonic",
     REQUIRED=["aiohttp"],
     packages=setuptools.find_packages(),
     classifiers=[

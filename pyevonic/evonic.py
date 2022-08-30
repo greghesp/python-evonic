@@ -48,7 +48,7 @@ class Evonic:
         """ Connect to the WebSocket of an Evonic Fire
 
         Raises:
-            EvonicConnectionError: Error occurred while communicating with WLED device via Websocket
+            EvonicConnectionError: Error occurred while communicating with Evonic Fire via Websocket
         """
 
         if self.connected:
@@ -71,7 +71,7 @@ class Evonic:
                 socket.gaierror,
         ) as exception:
             raise EvonicConnectionError(
-                "Error occurred while communicating with WLED device"
+                "Error occurred while communicating with Evonic device"
                 f" on WebSocket at {self.host}"
             ) from exception
 
@@ -89,7 +89,7 @@ class Evonic:
         """
 
         if not self._client:
-            raise EvonicError("Not connected to a WLED WebSocket")
+            raise EvonicError("Not connected to a Evonic Fire WebSocket")
 
         while not self._client.closed:
             message = await self._client.receive()
@@ -112,7 +112,7 @@ class Evonic:
                     aiohttp.WSMsgType.CLOSING,
             ):
                 raise EvonicConnectionClosed(
-                    f"Connection to the WLED WebSocket on {self.host} has been closed"
+                    f"Connection to the Evonic WebSocket on {self.host} has been closed"
                 )
 
     async def disconnect(self):
@@ -169,10 +169,10 @@ class Evonic:
 
         except asyncio.TimeoutError as exception:
             raise EvonicConnectionTimeoutError(
-                f"Timeout occurred while connecting to WLED device at {self.host}") from exception
+                f"Timeout occurred while connecting to Evonic device at {self.host}") from exception
         except (aiohttp.ClientError, socket.gaierror) as exception:
             raise EvonicConnectionError(
-                f"Error occurred while communicating with WLED device at {self.host}") from exception
+                f"Error occurred while communicating with Evonic device at {self.host}") from exception
 
         return response_data
 
