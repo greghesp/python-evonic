@@ -1,0 +1,14 @@
+name: Publish Python distributions to PyPI
+on: push
+
+jobs:
+  build-and-publish:
+    name: Build and Publish Python distribution to PyPI
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@master
+      - name: Setup Python 3.10
+        uses: actions/setup-python@v3
+        with:
+          python-version: "3.10"
