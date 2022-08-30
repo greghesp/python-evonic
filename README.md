@@ -63,7 +63,7 @@ set_light_brightness(rgb_id, brightness)
 ```
 `rgb_id` values can be found in `Device.info.modules`
 
-`brightness` must be from `0` to `255`
+`brightness` must be an integer from `0` to `255`
 
 ### Sets the animation speed of each RGB strip
 ```python
@@ -71,4 +71,10 @@ set_animation_speed(rgb_id, speed)
 ```
 `rgb_id` values can be found in `Device.info.modules`
 
-`speed` must be from `0` to `255`
+`speed` must be an integer from `0` to `255`
+
+### Sets the heater temperature on an Evonic Fire
+```python
+set_temperature(temp)
+```
+`temp` must be an integer between `50` and `90` for fahrenheit, and `10` and `33` for celsius

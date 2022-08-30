@@ -273,6 +273,31 @@ class Evonic:
 
         return await self.__send_cmd(f"rgb set {rgb_id[-1]} - {speed} - -")
 
+    async def set_temperature(self, temp):
+        """ Sets the heater temperature on an Evonic Fire
+
+        Raises:
+            EvonicUnsupportedFeature: Temperature Control is not supported on this device
+        """
+
+        if "temperature" not in self._device.info.modules:
+            raise EvonicUnsupportedFeature("Temperature Control is not supported on this device")
+
+        if not isinstance(temp, int):
+            raise EvonicError("temp must be an Integer")
+
+        if self._device.info.fahrenheit:
+            # Must be 50 - 90
+            if temp not in range(49, 91):
+                raise EvonicError(f"{temp} is not a valid value. Must be between 50 - 90")
+
+        else:
+            # Must be 11 - 32
+            if temp not in range(10, 33):
+                raise EvonicError(f"{temp} is not a valid value. Must be between 11 - 32")
+
+        return await self.__send_cmd(f"templevel {temp}")
+
     async def __send_voice(self, cmd):
         """ Sends a command via Websocket Client.
 

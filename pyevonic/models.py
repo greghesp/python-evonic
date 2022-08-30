@@ -30,7 +30,7 @@ class Info:
     configs: str
     product: str
     buildData: str
-    fahrenheit: str
+    fahrenheit: bool
     last_ping: str
     modules: []
 
