@@ -32,6 +32,7 @@ class Info:
     buildData: str
     fahrenheit: str
     last_ping: str
+    modules: []
 
     @staticmethod
     def from_dict(data):
@@ -42,6 +43,7 @@ class Info:
             buildData=data.get('buildData'),
             fahrenheit=data.get('fahrenheit'),
             last_ping=data.get('time'),
+            modules=data.get('module'),
         )
 
     def update_from_dict(self, data):
@@ -51,6 +53,7 @@ class Info:
         self.buildData = data.get('buildData', self.buildData)
         self.fahrenheit = data.get('fahrenheit', self.fahrenheit)
         self.last_ping = data.get('time', self.last_ping)
+        self.modules = data.get('module', self.modules)
 
 
 @dataclass
@@ -74,9 +77,28 @@ class Climate:
 
 
 @dataclass
+class Effect:
+    name: str
+
+
+@dataclass
+class Effects:
+    available_effects: []
+
+    @staticmethod
+    def from_dict(data):
+        return Effects(
+            available_effects=data.get('available_effects')
+        )
+
+    def update_from_dict(self, data):
+        self.available_effects = data.get('available_effects', self.available_effects)
+
+
+@dataclass
 class Light:
     on: bool
-    effect: str
+    effect: Effect
     feature_light: bool
     flame_brightness: int
     flame_speed: int
@@ -111,10 +133,12 @@ class Device:
         self.climate = Climate.from_dict(data)
         self.network = Network.from_dict(data)
         self.light = Light.from_dict(data)
+        self.effects = Effects.from_dict(data)
 
     def update_from_dict(self, data):
         self.info.update_from_dict(data)
         self.climate.update_from_dict(data)
         self.network.update_from_dict(data)
         self.light.update_from_dict(data)
+        self.effects.update_from_dict(data)
         return self
