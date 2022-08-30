@@ -298,6 +298,28 @@ class Evonic:
 
         return await self.__send_cmd(f"templevel {temp}")
 
+    async def heater_power(self, cmd):
+        """ Controls the Heater for the Evonic Fire.
+
+        Args:
+            cmd: The state to activate on this Fire. Can be "on", "off" or "toggle"
+
+        Raises:
+            EvonicError:  Command is not valid
+        """
+
+        if cmd not in ["on", "off", "toggle"]:
+            raise EvonicError("Command not valid. Must be one of 'on', 'off' or 'toggle'")
+
+        if cmd == "off":
+            voice_command = "Heater_OFF"
+        elif cmd == "on":
+            voice_command = "Heater_ON"
+        else:
+            voice_command = "Heater_ON_/_OFF"
+
+        return await self.__send_voice(voice_command)
+
     async def __send_voice(self, cmd):
         """ Sends a command via Websocket Client.
 

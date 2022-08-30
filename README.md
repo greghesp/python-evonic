@@ -78,3 +78,9 @@ set_animation_speed(rgb_id, speed)
 set_temperature(temp)
 ```
 `temp` must be an integer between `50` and `90` for fahrenheit, and `10` and `33` for celsius
+
+### Controls the Heater for the Evonic Fire.
+```python
+heater_power(cmd)
+```
+Valid `cmd` values: `on` `off` `toggle`

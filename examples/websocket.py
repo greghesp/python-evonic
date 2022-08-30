@@ -14,7 +14,6 @@ async def main():
             print(device.__dict__)
 
         asyncio.create_task(ev.listen(callback=new_update))
-        await ev.set_temperature(12)
         await asyncio.sleep(3600)
 
 
