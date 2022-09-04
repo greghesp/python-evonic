@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="pyevonic",
-    version="0.0.3",
+    version="0.0.4",
     author="Greg Hesp",
     author_email="greg.hesp+pyevonic@gmail.com",
     description="A wrapper for Evonic Fires WebSocket servers",
