@@ -5,10 +5,10 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="pyevonic",
-    version="0.0.2",
+    version="0.0.3",
     author="Greg Hesp",
     author_email="greg.hesp+pyevonic@gmail.com",
-    description="A wrapper for the Evoflame API v1",
+    description="A wrapper for Evonic Fires WebSocket servers",
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/greghesp/python-evonic",

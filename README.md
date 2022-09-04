@@ -2,7 +2,8 @@
 
 ## About
 
-This package allows you to control and monitor an Evonic Fire, over a local WebSocket connection
+This package allows you to control and monitor an Evonic Fire, over a local WebSocket connection.  It has been tested 
+with the Linnea, so other fires may or may not be compatible
 
 ## Installation
 
