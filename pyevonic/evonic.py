@@ -2,23 +2,25 @@
 from __future__ import annotations
 
 import asyncio
+from dataclasses import dataclass
 import json
 import socket
-from dataclasses import dataclass
+import logging
 
 import aiohttp
 import async_timeout
 from yarl import URL
 
-from pyevonic.models import Device
-
-from pyevonic.exceptions import (
-    EvonicError,
-    EvonicConnectionError,
+from .exceptions import (
     EvonicConnectionClosed,
+    EvonicConnectionError,
+    EvonicConnectionTimeoutError,
+    EvonicError,
     EvonicUnsupportedFeature,
-    EvonicConnectionTimeoutError
 )
+from .models import Device
+
+LOGGER = logging.getLogger(__package__)
 
 
 @dataclass
@@ -45,7 +47,7 @@ class Evonic:
         return self._client is not None and not self._client.closed
 
     async def connect(self):
-        """ Connect to the WebSocket of an Evonic Fire
+        """Connect to the WebSocket of an Evonic Fire
 
         Raises:
             EvonicConnectionError: Error occurred while communicating with Evonic Fire via Websocket
@@ -61,14 +63,14 @@ class Evonic:
 
         try:
             await self.request("/modules.json", "GET", None)
-            self.__available_effects()
+            self.available_effects()
             self._client = await self.session.ws_connect(url=url)
             return self._client, self.session
 
         except (
-                aiohttp.WSServerHandshakeError,
-                aiohttp.ClientConnectionError,
-                socket.gaierror,
+            aiohttp.WSServerHandshakeError,
+            aiohttp.ClientConnectionError,
+            socket.gaierror,
         ) as exception:
             raise EvonicConnectionError(
                 "Error occurred while communicating with Evonic device"
@@ -76,7 +78,7 @@ class Evonic:
             ) from exception
 
     async def listen(self, callback):
-        """ Listen for events on the Evonic Fire WebSocket
+        """Listen for events on the Evonic Fire WebSocket
 
         Args:
             callback: Method to call when an update is received from the Evonic Fire
@@ -107,9 +109,9 @@ class Evonic:
                 callback(device)
 
             if message.type in (
-                    aiohttp.WSMsgType.CLOSE,
-                    aiohttp.WSMsgType.CLOSED,
-                    aiohttp.WSMsgType.CLOSING,
+                aiohttp.WSMsgType.CLOSE,
+                aiohttp.WSMsgType.CLOSED,
+                aiohttp.WSMsgType.CLOSING,
             ):
                 raise EvonicConnectionClosed(
                     f"Connection to the Evonic WebSocket on {self.host} has been closed"
@@ -123,7 +125,7 @@ class Evonic:
         await self._client.close()
 
     async def request(self, uri, method, data):
-        """ Sends a http request to the Evonic Fire
+        """Sends a http request to the Evonic Fire
 
         Args:
             uri: The URI endpoint to send request to
@@ -136,8 +138,7 @@ class Evonic:
             EvonicConnectionError:  A error occurred while communicating with the Evonic Fire
         """
 
-        url = URL.build(scheme="http", host=self.host, port=80, path=uri)
-
+        url = URL.build(scheme="http", host=self.host, path=uri)
         if self.session is None:
             self.session = aiohttp.ClientSession()
             self._close_session = True
@@ -169,15 +170,17 @@ class Evonic:
 
         except asyncio.TimeoutError as exception:
             raise EvonicConnectionTimeoutError(
-                f"Timeout occurred while connecting to Evonic device at {self.host}") from exception
+                f"Timeout occurred while connecting to Evonic device at {self.host}"
+            ) from exception
         except (aiohttp.ClientError, socket.gaierror) as exception:
             raise EvonicConnectionError(
-                f"Error occurred while communicating with Evonic device at {self.host}") from exception
+                f"Error occurred while communicating with Evonic device at {self.host}"
+            ) from exception
 
         return response_data
 
-    async def light_power(self, cmd):
-        """ Controls the main lighting for the Evonic Fire.
+    async def power(self, cmd):
+        """Controls the power for the Evonic Fire.
 
         Args:
             cmd: The state to activate on this Fire. Can be "on", "off" or "toggle"
@@ -187,7 +190,9 @@ class Evonic:
         """
 
         if cmd not in ["on", "off", "toggle"]:
-            raise EvonicError("Command not valid. Must be one of 'on', 'off' or 'toggle'")
+            raise EvonicError(
+                "Command not valid. Must be one of 'on', 'off' or 'toggle'"
+            )
 
         if cmd == "off":
             voice_command = "Fire_OFF"
@@ -199,7 +204,7 @@ class Evonic:
         return await self.__send_voice(voice_command)
 
     async def set_effect(self, effect):
-        """ Set an effect on Evonic Fire.
+        """Set an effect on Evonic Fire.
 
         Args:
             effect: The effect to active on this Evonic Fire
@@ -208,25 +213,29 @@ class Evonic:
             EvonicUnsupportedFeature: Not a valid effect for this device
         """
         # Check effect is available for this device
+        LOGGER.info(effect)
+        LOGGER.info(self._device.effects.available_effects)
         if effect not in self._device.effects.available_effects:
             raise EvonicUnsupportedFeature("Not a valid effect for this device")
 
         return await self.__send_voice(effect)
 
     async def toggle_feature_light(self):
-        """ Toggles the feature light of an Evonic Fire
+        """Toggles the feature light of an Evonic Fire
 
         Raises:
             EvonicUnsupportedFeature: Feature Light is not supported on this device
         """
 
         if "light_box" not in self._device.info.modules:
-            raise EvonicUnsupportedFeature("Feature Light is not supported on this device")
+            raise EvonicUnsupportedFeature(
+                "Feature Light is not supported on this device"
+            )
 
         return await self.__send_voice("Light_box")
 
     async def set_light_brightness(self, rgb_id, brightness):
-        """ Sets the brightness of each RGB strip
+        """Sets the brightness of each RGB strip
 
         Args:
             rgb_id: The ID of the RGB element
@@ -245,12 +254,14 @@ class Evonic:
 
         # Must be 0 - 255
         if brightness not in range(-1, 256):
-            raise EvonicError(f"{brightness} is not a valid value. Must be between 0 - 255")
+            raise EvonicError(
+                f"{brightness} is not a valid value. Must be between 0 - 255"
+            )
 
         return await self.__send_cmd(f"rgb set {rgb_id[-1]} - - {brightness} -")
 
     async def set_animation_speed(self, rgb_id, speed):
-        """ Sets the animation speed of each RGB strip
+        """Sets the animation speed of each RGB strip
 
         Args:
             rgb_id: The ID of the RGB element
@@ -262,7 +273,9 @@ class Evonic:
         """
 
         if rgb_id not in self._device.info.modules:
-            raise EvonicUnsupportedFeature(f"{rgb_id} is not a support RGB ID on this device")
+            raise EvonicUnsupportedFeature(
+                f"{rgb_id} is not a support RGB ID on this device"
+            )
 
         if not isinstance(speed, int):
             raise EvonicError("speed must be an Integer")
@@ -274,32 +287,38 @@ class Evonic:
         return await self.__send_cmd(f"rgb set {rgb_id[-1]} - {speed} - -")
 
     async def set_temperature(self, temp):
-        """ Sets the heater temperature on an Evonic Fire
+        """Sets the heater temperature on an Evonic Fire
 
         Raises:
             EvonicUnsupportedFeature: Temperature Control is not supported on this device
         """
 
         if "temperature" not in self._device.info.modules:
-            raise EvonicUnsupportedFeature("Temperature Control is not supported on this device")
+            raise EvonicUnsupportedFeature(
+                "Temperature Control is not supported on this device"
+            )
 
         if not isinstance(temp, int):
             raise EvonicError("temp must be an Integer")
 
-        if self._device.info.fahrenheit:
+        if self._device.climate.fahrenheit:
             # Must be 50 - 90
             if temp not in range(49, 91):
-                raise EvonicError(f"{temp} is not a valid value. Must be between 50 - 90")
+                raise EvonicError(
+                    f"{temp} is not a valid value. Must be between 50 - 90"
+                )
 
         else:
             # Must be 11 - 32
             if temp not in range(10, 33):
-                raise EvonicError(f"{temp} is not a valid value. Must be between 11 - 32")
+                raise EvonicError(
+                    f"{temp} is not a valid value. Must be between 11 - 32"
+                )
 
         return await self.__send_cmd(f"templevel {temp}")
 
     async def heater_power(self, cmd):
-        """ Controls the Heater for the Evonic Fire.
+        """Controls the Heater for the Evonic Fire.
 
         Args:
             cmd: The state to activate on this Fire. Can be "on", "off" or "toggle"
@@ -309,7 +328,9 @@ class Evonic:
         """
 
         if cmd not in ["on", "off", "toggle"]:
-            raise EvonicError("Command not valid. Must be one of 'on', 'off' or 'toggle'")
+            raise EvonicError(
+                "Command not valid. Must be one of 'on', 'off' or 'toggle'"
+            )
 
         if cmd == "off":
             voice_command = "Heater_OFF"
@@ -320,8 +341,21 @@ class Evonic:
 
         return await self.__send_voice(voice_command)
 
+    async def get_device(self):
+        """Get the initial device information.
+
+        Raises:
+            EvonicConnectionError:  Unable to connect to device
+        """
+        if self._device is None:
+            try:
+                await self.request("/modules.json", "GET", None)
+            except EvonicError as err:
+                raise EvonicConnectionError("Unable to connect to device") from err
+        return self._device
+
     async def __send_voice(self, cmd):
-        """ Sends a command via Websocket Client.
+        """Sends a command via Websocket Client.
 
         Args:
             cmd: The value of the voice field to send
@@ -333,7 +367,7 @@ class Evonic:
         return await self._client.send_str(f'{{"voice":"{cmd}"}}')
 
     async def __send_cmd(self, cmd):
-        """ Sends a command to the WebSocket of an Evonic Fire
+        """Sends a command to the WebSocket of an Evonic Fire
 
         Args:
             cmd: The cmd value to send
@@ -341,8 +375,8 @@ class Evonic:
 
         return await self._client.send_str(f'{{"cmd":"{cmd}"}}')
 
-    def __available_effects(self):
-        """ Returns a list of available effects for each Evonic Fire type.
+    def available_effects(self):
+        """Returns a list of available effects for each Evonic Fire type.
         Information pulled from /options.htm
         """
 
@@ -350,17 +384,61 @@ class Evonic:
             raise Exception("No device initialised")
 
         configs = self._device.info.configs
-        default_effects = ["Vero", "Ignite", "Breathe", "Spectrum", "Embers", "Odyssey", "Aurora", "Red", "Orange",
-                           "Green", "Blue", "Violet", "White"]
+        default_effects = [
+            "Vero",
+            "Ignite",
+            "Breathe",
+            "Spectrum",
+            "Embers",
+            "Odyssey",
+            "Aurora",
+            "Red",
+            "Orange",
+            "Green",
+            "Blue",
+            "Violet",
+            "White",
+        ]
 
-        if configs in ["1800", "ds1030", "hal800", "hal1030", "hal1500", "hal2400", "halev4",
-                       "halev8", "irpanel", "v630", "v730", "v1030"]:
+        if configs in [
+            "1800",
+            "ds1030",
+            "hal800",
+            "hal1030",
+            "hal1500",
+            "hal2400",
+            "halev4",
+            "halev8",
+            "irpanel",
+            "v630",
+            "v730",
+            "v1030",
+        ]:
             default_effects.insert(0, "Eos")
 
-        if configs in ["ilusion2", "alisio1150", "alisio1550", "alisio1850", "alisio850"]:
-            default_effects = ["Ilusion", "Aurora", "Patriot", "Verona", "Charm", "Viva", "Cocktail", "Campfire"]
+        if configs in [
+            "ilusion2",
+            "alisio1150",
+            "alisio1550",
+            "alisio1850",
+            "alisio850",
+        ]:
+            default_effects = [
+                "Ilusion",
+                "Aurora",
+                "Patriot",
+                "Verona",
+                "Charm",
+                "Viva",
+                "Cocktail",
+                "Campfire",
+            ]
 
-        if configs in ["alente", "e1030", "e1250", "e1500", "e1800", "e2400", "e500", "e800"] and configs != "1800":
+        if (
+            configs
+            in ["alente", "e1030", "e1250", "e1500", "e1800", "e2400", "e500", "e800"]
+            and configs != "1800"
+        ):
             default_effects = ["Evoflame", "Party"]
 
         if configs in ["sl600", "sl700", "sl1000", "sl1250", "sl1500"]:
