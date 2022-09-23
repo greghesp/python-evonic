@@ -5,7 +5,7 @@
 The Dashes represent different controls:
 
 1) This is the RGB ID
-2) Unknown
+2) Set RGB Primary Color???
 3) Speed
 4) Brightness
 5) Strip Effects (see below)
