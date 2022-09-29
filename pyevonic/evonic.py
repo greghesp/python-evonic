@@ -4,6 +4,7 @@ from __future__ import annotations
 import asyncio
 import json
 import socket
+import logging
 from dataclasses import dataclass
 
 import aiohttp
@@ -19,6 +20,8 @@ from pyevonic.exceptions import (
     EvonicUnsupportedFeature,
     EvonicConnectionTimeoutError
 )
+
+LOGGER = logging.getLogger(__name__)
 
 
 @dataclass
@@ -42,6 +45,8 @@ class Evonic:
             otherwise False
         """
 
+        LOGGER.info(f"Client Connected: {self._client is not None and not self._client.closed}")
+
         return self._client is not None and not self._client.closed
 
     async def connect(self):
@@ -52,16 +57,20 @@ class Evonic:
         """
 
         if self.connected:
+            LOGGER.debug("Already Connected")
             return
 
         if self.session is None:
+            LOGGER.debug("No session exists, using ClientSession")
             self.session = aiohttp.ClientSession()
 
         url = URL.build(scheme="ws", host=self.host, port=81)
 
         try:
             await self.request("/modules.json", "GET", None)
-            self.__available_effects()
+            await self.request("/config.options.json", "GET", None)
+            await self.__available_effects()
+            LOGGER.debug(f"Connecting Websocket to: {url}")
             self._client = await self.session.ws_connect(url=url)
             return self._client, self.session
 
@@ -101,6 +110,7 @@ class Evonic:
                 message_data = message.json()
 
                 if self._device is None:
+                    LOGGER.debug("No Device exists, creating new instance")
                     self._device = Device(message_data)
 
                 device = self._device.update_from_dict(message_data)
@@ -118,17 +128,20 @@ class Evonic:
     async def disconnect(self):
         """Disconnect from the WebSocket of an Evonic Fire."""
         if not self._client or not self.connected:
+            LOGGER.debug("Cannot disconnect Websocket, as no client connection exists")
             return
 
         await self._client.close()
 
-    async def request(self, uri, method, data):
+    async def request(self, uri, method, data, host=None, scheme=None):
         """ Sends a http request to the Evonic Fire
 
         Args:
             uri: The URI endpoint to send request to
             method: HTTP Method
             data: Request Content
+            host:? Domain to call
+            scheme:? http vs https
 
         Raises:
             EvonicError:  Received an unexpected response from the Evonic Fire
@@ -136,15 +149,23 @@ class Evonic:
             EvonicConnectionError:  A error occurred while communicating with the Evonic Fire
         """
 
-        url = URL.build(scheme="http", host=self.host, port=80, path=uri)
+        if host is None:
+            host = self.host
+
+        if scheme is None:
+            scheme = "http"
+
+        url = URL.build(scheme=scheme, host=host, path=uri)
 
         if self.session is None:
+            LOGGER.debug("No session exists, using ClientSession")
             self.session = aiohttp.ClientSession()
             self._close_session = True
 
         try:
             async with async_timeout.timeout(self.request_timeout):
                 response = await self.session.request(method, url, json=data)
+                LOGGER.debug(f"Request Response from {url}:")
 
             content_type = response.headers.get("Content-Type", "")
             if (response.status // 100) in [4, 5]:
@@ -157,6 +178,7 @@ class Evonic:
 
             if "application/json" in content_type:
                 response_data = await response.json()
+                LOGGER.debug(response_data)
 
                 if method == "GET" and uri == "/modules.json":
                     if self._device is None:
@@ -164,8 +186,11 @@ class Evonic:
 
                     self._device.update_from_dict(data=response_data)
 
+                elif method == "GET" and uri == "/config.options.json":
+                    self._device.update_from_dict(data=response_data)
+
                 else:
-                    response_data = await response.text()
+                    response_data = await response.json()
 
         except asyncio.TimeoutError as exception:
             raise EvonicConnectionTimeoutError(
@@ -176,7 +201,7 @@ class Evonic:
 
         return response_data
 
-    async def light_power(self, cmd):
+    async def power(self, cmd):
         """ Controls the main lighting for the Evonic Fire.
 
         Args:
@@ -287,11 +312,13 @@ class Evonic:
             raise EvonicError("temp must be an Integer")
 
         if self._device.info.fahrenheit:
+            LOGGER.debug("Temperature is set to Fahrenheit")
             # Must be 50 - 90
             if temp not in range(49, 91):
                 raise EvonicError(f"{temp} is not a valid value. Must be between 50 - 90")
 
         else:
+            LOGGER.debug("Temperature is set to Celsius")
             # Must be 11 - 32
             if temp not in range(10, 33):
                 raise EvonicError(f"{temp} is not a valid value. Must be between 11 - 32")
@@ -320,6 +347,20 @@ class Evonic:
 
         return await self.__send_voice(voice_command)
 
+    async def get_device(self):
+        """Get the initial device information.
+
+        Raises:
+            EvonicConnectionError:  Unable to connect to device
+        """
+
+        if self._device is None:
+            try:
+                await self.request("/modules.json", "GET", None)
+            except EvonicError as err:
+                raise EvonicConnectionError("Unable to connect to device") from err
+        return self._device
+
     async def __send_voice(self, cmd):
         """ Sends a command via Websocket Client.
 
@@ -330,6 +371,7 @@ class Evonic:
         if self._client is None:
             raise Exception("Connect first")
 
+        LOGGER.debug(f"Sending voice command: {cmd}")
         return await self._client.send_str(f'{{"voice":"{cmd}"}}')
 
     async def __send_cmd(self, cmd):
@@ -339,15 +381,28 @@ class Evonic:
             cmd: The cmd value to send
         """
 
+        if self._client is None:
+            raise Exception("Connect first")
+
+        LOGGER.debug(f"Sending standard command: {cmd}")
         return await self._client.send_str(f'{{"cmd":"{cmd}"}}')
 
-    def __available_effects(self):
+    async def __available_effects(self):
         """ Returns a list of available effects for each Evonic Fire type.
         Information pulled from /options.htm
         """
 
         if self._device is None:
             raise Exception("No device initialised")
+
+        try:
+            LOGGER.debug("Requesting paid effects")
+            payed = await self.request(f"/effect/payed/{self._device.info.email}/{self._device.info.configs}", "GET",
+                                       None,
+                                       "evoflame.co.uk", "https")
+
+        except EvonicError as err:
+            raise EvonicConnectionError("Unable to connect to device") from err
 
         configs = self._device.info.configs
         default_effects = ["Vero", "Ignite", "Breathe", "Spectrum", "Embers", "Odyssey", "Aurora", "Red", "Orange",
@@ -369,11 +424,17 @@ class Evonic:
         if configs in ["video"]:
             default_effects = ["Low", "Medium", "High"]
 
-        self._device.update_from_dict({"available_effects": default_effects})
+        supported_effects = [*default_effects, *payed.get("effect")]
+        LOGGER.debug(f"Supported effects {supported_effects}")
+
+        self._device.update_from_dict({"available_effects": supported_effects})
         return
 
     async def close(self) -> None:
         """Close open client (WebSocket) session."""
+
+        LOGGER.info("Closing Websocket Session")
+
         await self.disconnect()
         if self.session and self._close_session:
             await self.session.close()

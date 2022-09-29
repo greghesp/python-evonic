@@ -1,10 +1,17 @@
 import asyncio
 
+import aiohttp
+import logging
+
 from pyevonic.evonic import Evonic
+
+logging.basicConfig(level=logging.DEBUG)
 
 
 async def main():
-    async with Evonic("192.168.1.190") as ev:
+    session = aiohttp.ClientSession()
+
+    async with Evonic("192.168.1.190", session=session) as ev:
         await ev.connect()
         if ev.connected:
             print("Connected!")
@@ -14,6 +21,7 @@ async def main():
             print(device.__dict__)
 
         asyncio.create_task(ev.listen(callback=new_update))
+        await ev.set_temperature(19)
         await asyncio.sleep(3600)
 
 

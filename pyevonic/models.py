@@ -1,5 +1,7 @@
 from dataclasses import dataclass
+import logging
 
+LOGGER = logging.getLogger(__name__)
 
 @dataclass
 class Network:
@@ -7,6 +9,7 @@ class Network:
     subnet: str
     ssidAP: str
     signal_strength: str
+    mac: str
 
     @staticmethod
     def from_dict(data):
@@ -14,7 +17,8 @@ class Network:
             ip=data.get('ip'),
             subnet=data.get('subnet'),
             ssidAP=data.get('ssidAP'),
-            signal_strength=data.get('dbm')
+            signal_strength=data.get('dbm'),
+            mac=data.get("mac")
         )
 
     def update_from_dict(self, data):
@@ -22,6 +26,7 @@ class Network:
         self.subnet = data.get('subnet', self.subnet)
         self.ssidAP = data.get('ssidAP', self.ssidAP)
         self.signal_strength = data.get('dbm', self.signal_strength)
+        self.mac = data.get('mac', self.mac)
 
 
 @dataclass
@@ -33,6 +38,7 @@ class Info:
     fahrenheit: bool
     last_ping: str
     modules: []
+    email: str
 
     @staticmethod
     def from_dict(data):
@@ -44,6 +50,7 @@ class Info:
             fahrenheit=data.get('fahrenheit'),
             last_ping=data.get('time'),
             modules=data.get('module'),
+            email=data.get('mail')
         )
 
     def update_from_dict(self, data):
@@ -54,6 +61,7 @@ class Info:
         self.fahrenheit = data.get('fahrenheit', self.fahrenheit)
         self.last_ping = data.get('time', self.last_ping)
         self.modules = data.get('module', self.modules)
+        self.email = data.get('mail', self.email)
 
 
 @dataclass
@@ -136,6 +144,7 @@ class Device:
         self.effects = Effects.from_dict(data)
 
     def update_from_dict(self, data):
+        # LOGGER.debug(f"Update model from dictionary: {data}")
         self.info.update_from_dict(data)
         self.climate.update_from_dict(data)
         self.network.update_from_dict(data)
