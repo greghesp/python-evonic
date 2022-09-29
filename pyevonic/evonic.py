@@ -311,7 +311,7 @@ class Evonic:
         if not isinstance(temp, int):
             raise EvonicError("temp must be an Integer")
 
-        if self._device.info.fahrenheit:
+        if self._device.climate.fahrenheit:
             LOGGER.debug("Temperature is set to Fahrenheit")
             # Must be 50 - 90
             if temp not in range(49, 91):
