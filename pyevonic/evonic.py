@@ -178,12 +178,10 @@ class Evonic:
 
             if "application/json" in content_type:
                 response_data = await response.json()
-                LOGGER.debug(response_data)
 
                 if method == "GET" and uri == "/modules.json":
                     if self._device is None:
                         self._device = Device(response_data)
-
                     self._device.update_from_dict(data=response_data)
 
                 elif method == "GET" and uri == "/config.options.json":

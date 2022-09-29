@@ -3,6 +3,7 @@ import logging
 
 LOGGER = logging.getLogger(__name__)
 
+
 @dataclass
 class Network:
     ip: str
@@ -80,14 +81,14 @@ class Climate:
             current_temp=to_int(data.get("temperature")),
             target_temp=to_int(data.get('templevel')),
             heating=data.get("Heater"),
-            fahrenheit=data.get("fahrenheit"),
+            fahrenheit=to_int(data.get("fahrenheit")),
         )
 
     def update_from_dict(self, data):
         self.current_temp = to_int(data.get("temperature", self.current_temp))
         self.target_temp = to_int(data.get("templevel", self.target_temp))
         self.heating = data.get('Heater', self.heating)
-        self.fahrenheit = data.get('fahrenheit', self.fahrenheit)
+        self.fahrenheit = to_int(data.get('fahrenheit', self.fahrenheit))
 
 
 @dataclass
@@ -137,6 +138,7 @@ class Light:
         self.fuelbed_brightness = to_int(data.get("brightnessRGB1", self.fuelbed_brightness))
         self.fuelbed_speed = to_int(data.get("speedRGB1", self.fuelbed_speed))
 
+
 class Device:
     def __init__(self, data):
         self.info = Info.from_dict(data)
@@ -153,6 +155,7 @@ class Device:
         self.effects.update_from_dict(data)
         return self
 
+
 def to_int(value) -> int:
     if isinstance(value, int):
         return value
@@ -160,3 +163,9 @@ def to_int(value) -> int:
         return int(value)
     else:
         return 0
+
+
+# def to_bool(value):
+#     if value == "0" or value is None:
+#         return False
+#     return True
