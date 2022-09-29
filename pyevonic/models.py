@@ -31,6 +31,7 @@ class Network:
 
 @dataclass
 class Info:
+    ssdp: str
     ssidAP: str
     configs: str
     product: str
@@ -43,6 +44,7 @@ class Info:
     @staticmethod
     def from_dict(data):
         return Info(
+            ssdp=data.get("SSDP"),
             ssidAP=data.get('ssidAP'),
             configs=data.get('configs'),
             product=data.get('product'),
@@ -54,6 +56,7 @@ class Info:
         )
 
     def update_from_dict(self, data):
+        self.ssdp = data.get('SSDP', self.ssdp)
         self.ssidAP = data.get('ssidAP', self.ssidAP)
         self.configs = data.get('configs', self.configs)
         self.product = data.get('product', self.product)
@@ -144,7 +147,6 @@ class Device:
         self.effects = Effects.from_dict(data)
 
     def update_from_dict(self, data):
-        # LOGGER.debug(f"Update model from dictionary: {data}")
         self.info.update_from_dict(data)
         self.climate.update_from_dict(data)
         self.network.update_from_dict(data)

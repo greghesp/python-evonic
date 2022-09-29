@@ -8,3 +8,4 @@ dist/
 venv/
 .vscode/
 .idea/
+.DS_Store
