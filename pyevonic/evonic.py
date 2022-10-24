@@ -11,9 +11,9 @@ import aiohttp
 import async_timeout
 from yarl import URL
 
-from pyevonic.models import Device
+from .models import Device
 
-from pyevonic.exceptions import (
+from .exceptions import (
     EvonicError,
     EvonicConnectionError,
     EvonicConnectionClosed,
@@ -72,6 +72,7 @@ class Evonic:
             await self.__available_effects()
             LOGGER.debug(f"Connecting Websocket to: {url}")
             self._client = await self.session.ws_connect(url=url)
+            await self.__send_cmd("get config.setup")
             return self._client, self.session
 
         except (
@@ -114,6 +115,7 @@ class Evonic:
                     self._device = Device(message_data)
 
                 device = self._device.update_from_dict(message_data)
+                LOGGER.debug(message_data)
                 callback(device)
 
             if message.type in (

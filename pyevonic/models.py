@@ -41,6 +41,9 @@ class Info:
     last_ping: str
     modules: []
     email: str
+    cost: float
+    heater_power: int
+    led_power: int
 
     @staticmethod
     def from_dict(data):
@@ -53,7 +56,10 @@ class Info:
             buildData=data.get('buildData'),
             last_ping=data.get('time'),
             modules=data.get('module'),
-            email=data.get('mail')
+            email=data.get('mail'),
+            cost=float(data.get('cost', 0)),
+            heater_power=to_int(data.get('powerHeater')),
+            led_power=to_int(data.get('powerLed')),
         )
 
     def update_from_dict(self, data):
@@ -66,6 +72,9 @@ class Info:
         self.last_ping = data.get('time', self.last_ping)
         self.modules = data.get('module', self.modules)
         self.email = data.get('mail', self.email)
+        self.cost = float(data.get('cost', self.cost))
+        self.heater_power = to_int(data.get('powerHeater', self.heater_power))
+        self.led_power = to_int(data.get('powerLed', self.led_power))
 
 
 @dataclass
@@ -163,9 +172,3 @@ def to_int(value) -> int:
         return int(value)
     else:
         return 0
-
-
-# def to_bool(value):
-#     if value == "0" or value is None:
-#         return False
-#     return True

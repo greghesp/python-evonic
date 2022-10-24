@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="pyevonic",
-    version="0.0.12",
+    version="0.0.13",
     author="Greg Hesp",
     author_email="greg.hesp+pyevonic@gmail.com",
     description="A wrapper for the Evoflame API v1",
