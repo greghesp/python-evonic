@@ -69,6 +69,7 @@ class Evonic:
         try:
             await self.request("/modules.json", "GET", None)
             await self.request("/config.options.json", "GET", None)
+            await self.request("/config.admin.json", "GET", None)
             await self.__available_effects()
             LOGGER.debug(f"Connecting Websocket to: {url}")
             self._client = await self.session.ws_connect(url=url)
@@ -186,7 +187,7 @@ class Evonic:
                         self._device = Device(response_data)
                     self._device.update_from_dict(data=response_data)
 
-                elif method == "GET" and uri == "/config.options.json":
+                elif method == "GET" and (uri == "/config.options.json" or uri == "/config.admin.json"):
                     self._device.update_from_dict(data=response_data)
 
                 else:

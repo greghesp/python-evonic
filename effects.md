@@ -14,7 +14,7 @@ The Dashes represent different controls:
 
 > Uses this library: https://github.com/kitesurfer1404/WS2812FX/blob/master/README.md
 
-ffects
+Effects
 -------
 
 0. **Static** - No blinking. Just plain old static light.

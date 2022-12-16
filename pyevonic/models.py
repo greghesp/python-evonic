@@ -44,6 +44,7 @@ class Info:
     cost: float
     heater_power: int
     led_power: int
+    flashChip: str
 
     @staticmethod
     def from_dict(data):
@@ -60,6 +61,7 @@ class Info:
             cost=float(data.get('cost', 0)),
             heater_power=to_int(data.get('powerHeater')),
             led_power=to_int(data.get('powerLed')),
+            flashChip=data.get('flashChip'),
         )
 
     def update_from_dict(self, data):
@@ -75,6 +77,7 @@ class Info:
         self.cost = float(data.get('cost', self.cost))
         self.heater_power = to_int(data.get('powerHeater', self.heater_power))
         self.led_power = to_int(data.get('powerLed', self.led_power))
+        self.flashChip = data.get('flashChip', self.flashChip)
 
 
 @dataclass
